@@ -2,7 +2,8 @@ import connection from '../Databases/Config.js';
 
 // Utility function to validate dates
 const validateDates = (startDate, endDate) => {
-  const currentDate = new Date('2025-06-16T02:59:00+05:30'); // Updated to current time
+  const currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
   const start = new Date(startDate);
   const end = new Date(endDate);
 
@@ -68,7 +69,7 @@ const Leave = {
   findAll: async () => {
     return new Promise((resolve, reject) => {
       connection.query(
-        'SELECT leaves1.*, users2.email, users2.name FROM leaves1 JOIN users2 ON leaves1.user_id = users2.id ORDER BY leaves1.created_at DESC',
+        'SELECT l.*, u.username, u.email FROM leaves1 l JOIN users2 u ON l.user_id = u.id ORDER BY l.created_at DESC',
         (err, results) => {
           if (err) {
             return reject(new Error(`Failed to fetch all leaves: ${err.message}`));
@@ -79,47 +80,50 @@ const Leave = {
     });
   },
 
-  updateStatus: async (id, status) => {
+  findById: async (leaveId) => {
     return new Promise((resolve, reject) => {
-      const validStatuses = ['pending', 'approved', 'rejected'];
-      
-      if (!validStatuses.includes(status)) {
-        return reject(new Error('Invalid status. Must be one of: pending, approved, rejected'));
-      }
+      connection.query(
+        'SELECT * FROM leaves1 WHERE id = ?',
+        [leaveId],
+        (err, results) => {
+          if (err) {
+            return reject(new Error(`Failed to fetch leave: ${err.message}`));
+          }
+          resolve(results[0]);
+        }
+      );
+    });
+  },
 
+  updateStatus: async (leaveId, status) => {
+    return new Promise((resolve, reject) => {
       connection.query(
         'UPDATE leaves1 SET status = ? WHERE id = ?',
-        [status, id],
+        [status, leaveId],
         (err, result) => {
           if (err) {
             return reject(new Error(`Failed to update leave status: ${err.message}`));
           }
-          if (result.affectedRows === 0) {
-            return reject(new Error('Leave request not found'));
-          }
-          resolve({ message: 'Status updated successfully' });
+          resolve(result);
         }
       );
     });
   },
 
-  delete: async (id) => {
+  delete: async (leaveId) => {
     return new Promise((resolve, reject) => {
       connection.query(
         'DELETE FROM leaves1 WHERE id = ?',
-        [id],
+        [leaveId],
         (err, result) => {
           if (err) {
             return reject(new Error(`Failed to delete leave: ${err.message}`));
           }
-          if (result.affectedRows === 0) {
-            return reject(new Error('Leave request not found'));
-          }
-          resolve({ message: 'Leave deleted successfully' });
+          resolve(result);
         }
       );
     });
-  },
+  }
 };
 
 export default Leave;
